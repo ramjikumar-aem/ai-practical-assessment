@@ -1,0 +1,33 @@
+<div data-sly-use.clientlib="/libs/granite/sightly/templates/clientlib.html"
+     data-sly-use.model="com.ttn.support.core.models.TicketListModel"
+     data-sly-call="${clientlib.css @ categories='support.tickets'}"
+     data-sly-call="${clientlib.js @ categories='support.tickets'}"></div>
+<section class="support-app" data-support-ticket-list data-create-page="${model.createPagePath}">
+    <h2>${model.heading}</h2>
+    <div class="support-toolbar">
+        <input type="search" data-search placeholder="Search tickets" aria-label="Search tickets"/>
+        <select data-status-filter aria-label="Filter by status">
+            <option value="">All statuses</option>
+            <option value="OPEN">Open</option>
+            <option value="IN_PROGRESS">In Progress</option>
+            <option value="RESOLVED">Resolved</option>
+            <option value="CLOSED">Closed</option>
+            <option value="CANCELLED">Cancelled</option>
+        </select>
+        <button type="button" data-search-button>Search</button>
+        <a href="${model.createPagePath @ context='uri'}">Create Ticket</a>
+    </div>
+    <div data-message class="support-hidden"></div>
+    <table class="support-table">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Status</th>
+                <th>Priority</th>
+                <th>Assignee</th>
+                <th>Updated</th>
+            </tr>
+        </thead>
+        <tbody data-results></tbody>
+    </table>
+</section>

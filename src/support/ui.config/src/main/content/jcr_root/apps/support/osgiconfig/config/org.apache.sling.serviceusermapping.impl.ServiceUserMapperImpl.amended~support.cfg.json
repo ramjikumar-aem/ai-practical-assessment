@@ -1,0 +1,5 @@
+{
+    "user.mapping": [
+        "com.ttn.support.core:support-user-reader=[user-reader-service]"
+    ]
+}

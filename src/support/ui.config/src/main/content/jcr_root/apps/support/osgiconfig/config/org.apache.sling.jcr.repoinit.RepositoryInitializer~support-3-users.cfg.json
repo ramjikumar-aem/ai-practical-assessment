@@ -1,0 +1,8 @@
+{
+    "scripts": [
+        "create user support-agent with password support123",
+        "add support-agent to group support-agents",
+        "create user support-manager with password support123",
+        "add support-manager to group support-managers"
+    ]
+}

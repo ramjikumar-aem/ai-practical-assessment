@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jcr:root xmlns:jcr="http://www.jcp.org/jcr/1.0" xmlns:rep="internal"
+    jcr:primaryType="rep:ACL">
+    <allow-support-agents
+        jcr:primaryType="rep:GrantACE"
+        rep:principalName="support-agents"
+        rep:privileges="{Name}[jcr:read]"/>
+    <allow-support-managers
+        jcr:primaryType="rep:GrantACE"
+        rep:principalName="support-managers"
+        rep:privileges="{Name}[jcr:read]"/>
+    <allow-administrators
+        jcr:primaryType="rep:GrantACE"
+        rep:principalName="administrators"
+        rep:privileges="{Name}[jcr:all]"/>
+</jcr:root>

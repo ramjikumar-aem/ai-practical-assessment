@@ -1,0 +1,66 @@
+.support-app {
+    font-family: Arial, sans-serif;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+.support-toolbar {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+.support-toolbar input,
+.support-toolbar select,
+.support-toolbar button,
+.support-form input,
+.support-form textarea,
+.support-form select,
+.support-form button {
+    padding: 0.5rem;
+}
+
+.support-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.support-table th,
+.support-table td {
+    border: 1px solid #ddd;
+    padding: 0.5rem;
+    text-align: left;
+}
+
+.support-error {
+    color: #b00020;
+    margin: 0.5rem 0;
+}
+
+.support-info {
+    color: #555;
+    margin: 0.5rem 0;
+}
+
+.support-hidden {
+    display: none;
+}
+
+.support-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin: 1rem 0;
+}
+
+.support-comments {
+    margin-top: 1.5rem;
+}
+
+.support-comment {
+    border-left: 3px solid #ccc;
+    padding-left: 0.75rem;
+    margin-bottom: 0.75rem;
+}

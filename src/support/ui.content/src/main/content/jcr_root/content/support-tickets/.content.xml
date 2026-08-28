@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jcr:root xmlns:sling="http://sling.apache.org/jcr/sling/1.0" xmlns:cq="http://www.day.com/jcr/cq/1.0" xmlns:jcr="http://www.jcp.org/jcr/1.0" xmlns:nt="http://www.jcp.org/jcr/nt/1.0" xmlns:rep="internal"
+    jcr:mixinTypes="[rep:AccessControllable]"
+    jcr:primaryType="cq:Page">
+    <rep:policy/>
+    <jcr:content
+        jcr:primaryType="cq:PageContent"
+        jcr:title="Support Tickets"
+        cq:template="/conf/support/settings/wcm/templates/page-content"
+        sling:resourceType="support/components/page">
+        <root
+            jcr:primaryType="nt:unstructured"
+            sling:resourceType="support/components/container"
+            layout="responsiveGrid">
+            <ticket_list
+                jcr:primaryType="nt:unstructured"
+                sling:resourceType="support/components/ticket-list"/>
+        </root>
+    </jcr:content>
+    <create/>
+    <detail/>
+</jcr:root>

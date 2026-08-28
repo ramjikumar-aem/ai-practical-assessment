@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<workspaceFilter version="1.0">
+    <filter root="/conf/support" mode="merge"/>
+    <filter root="/content/support-tickets" mode="merge"/>
+    <filter root="/content/dam/support" mode="merge"/>
+    <filter root="/content/dam/formsanddocuments-fdm/support" mode="merge"/>
+    <filter root="/content/dam/formsanddocuments-themes/support" mode="merge"/>
+</workspaceFilter>

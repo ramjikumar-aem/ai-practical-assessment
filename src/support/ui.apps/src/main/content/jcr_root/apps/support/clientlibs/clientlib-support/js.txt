@@ -1,0 +1,6 @@
+#base=js
+
+support-api.js
+ticket-list.js
+ticket-form.js
+ticket-detail.js

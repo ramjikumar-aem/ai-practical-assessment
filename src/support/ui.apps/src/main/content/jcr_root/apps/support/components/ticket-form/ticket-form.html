@@ -1,0 +1,23 @@
+<div data-sly-use.clientlib="/libs/granite/sightly/templates/clientlib.html"
+     data-sly-use.model="com.ttn.support.core.models.TicketFormModel"
+     data-sly-call="${clientlib.css @ categories='support.tickets'}"
+     data-sly-call="${clientlib.js @ categories='support.tickets'}"></div>
+<section class="support-app" data-support-ticket-form>
+    <h2>${model.heading}</h2>
+    <div data-message class="support-hidden"></div>
+    <form class="support-form">
+        <label>Title <input type="text" data-title required/></label>
+        <label>Description <textarea data-description required></textarea></label>
+        <label>Priority
+            <select data-priority>
+                <option value="LOW">Low</option>
+                <option value="MEDIUM" selected>Medium</option>
+                <option value="HIGH">High</option>
+            </select>
+        </label>
+        <label>Assignee
+            <select data-assignee required></select>
+        </label>
+        <button type="submit">Create</button>
+    </form>
+</section>

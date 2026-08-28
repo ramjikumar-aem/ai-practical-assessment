@@ -1,0 +1,12 @@
+{
+    "scripts": [
+        "create path (sling:OrderedFolder) /content/dam/support",
+        "create path (nt:unstructured) /content/dam/support/jcr:content",
+        "set properties on /content/dam/support/jcr:content\n  set cq:conf{String} to /conf/support\n  set jcr:title{String} to \"Support Tickets\"\nend",
+        "create path (sling:Folder) /var/support-tickets",
+        "create path (sling:Folder) /var/support-tickets/tickets",
+        "create path (sling:Folder) /var/support-tickets/comments",
+        "create group support-agents",
+        "create group support-managers"
+    ]
+}

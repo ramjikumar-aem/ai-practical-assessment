@@ -1,0 +1,4 @@
+project: support
+package: com.ttn.support.core
+group: Support Tickets
+configured: true
