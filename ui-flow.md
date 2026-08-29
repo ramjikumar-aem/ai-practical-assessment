@@ -22,7 +22,7 @@ States:
 `Ticket List` → `Create Ticket` → enter required fields → submit
 
 Outcomes:
-- success → ticket detail or refreshed list;
+- success → redirect to ticket detail with `?id={ticketId}`; detail page initializes via `SupportUi.onReady()` and fetches ticket data;
 - validation failure → inline field messages;
 - request failure → meaningful non-field error.
 

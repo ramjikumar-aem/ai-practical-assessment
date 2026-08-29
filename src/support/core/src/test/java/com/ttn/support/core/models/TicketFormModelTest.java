@@ -8,30 +8,28 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @ExtendWith(AemContextExtension.class)
-class TicketListModelTest {
+class TicketFormModelTest {
 
     private final AemContext context = new AemContext();
 
     @Test
     void usesDefaultsWhenDialogPropertiesMissing() {
         context.create().resource("/content/component");
-        TicketListModel model = context.currentResource("/content/component").adaptTo(TicketListModel.class);
+        TicketFormModel model = context.currentResource("/content/component").adaptTo(TicketFormModel.class);
 
-        assertEquals("Support Tickets", model.getHeading());
-        assertEquals("/content/support-tickets/create.html", model.getCreatePagePath());
+        assertEquals("Create Ticket", model.getHeading());
+        assertEquals("/content/support-tickets.html", model.getListPagePath());
         assertEquals("/content/support-tickets/detail.html", model.getDetailPagePath());
     }
 
     @Test
-    void usesAuthoredDialogProperties() {
+    void usesAuthoredListPagePath() {
         context.create().resource("/content/component",
-                "heading", "My Tickets",
-                "createPagePath", "/content/support-tickets/create",
+                "listPagePath", "/content/support-tickets",
                 "detailPagePath", "/content/support-tickets/detail");
-        TicketListModel model = context.currentResource("/content/component").adaptTo(TicketListModel.class);
+        TicketFormModel model = context.currentResource("/content/component").adaptTo(TicketFormModel.class);
 
-        assertEquals("My Tickets", model.getHeading());
-        assertEquals("/content/support-tickets/create.html", model.getCreatePagePath());
+        assertEquals("/content/support-tickets.html", model.getListPagePath());
         assertEquals("/content/support-tickets/detail.html", model.getDetailPagePath());
     }
 }

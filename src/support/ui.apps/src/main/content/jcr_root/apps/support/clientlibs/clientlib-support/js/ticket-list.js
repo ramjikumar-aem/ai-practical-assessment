@@ -1,18 +1,13 @@
 (function (document) {
     "use strict";
 
-    function showMessage(container, message, isError) {
-        container.textContent = message;
-        container.className = isError ? "support-error" : "support-info";
-        container.classList.remove("support-hidden");
-    }
-
-    function renderRows(tableBody, items) {
+    function renderRows(tableBody, items, detailPagePath) {
         tableBody.innerHTML = "";
         if (!items.length) {
             var row = document.createElement("tr");
             var cell = document.createElement("td");
             cell.colSpan = 5;
+            cell.className = "support-empty";
             cell.textContent = "No tickets found.";
             row.appendChild(cell);
             tableBody.appendChild(row);
@@ -20,18 +15,18 @@
         }
         items.forEach(function (ticket) {
             var row = document.createElement("tr");
+            var detailUrl = SupportUi.buildDetailUrl(detailPagePath, ticket.id);
             row.innerHTML =
-                "<td><a href=\"/content/support-tickets/detail.html?id=" + encodeURIComponent(ticket.id) + "\">" +
-                ticket.title + "</a></td>" +
-                "<td>" + ticket.status + "</td>" +
-                "<td>" + ticket.priority + "</td>" +
-                "<td>" + ticket.assignedTo + "</td>" +
-                "<td>" + ticket.updatedAt + "</td>";
+                "<td><a href=\"" + SupportUi.escapeHtml(detailUrl) + "\">" + SupportUi.escapeHtml(ticket.title) + "</a></td>" +
+                "<td>" + SupportUi.renderBadge(ticket.status, "status") + "</td>" +
+                "<td>" + SupportUi.renderBadge(ticket.priority, "priority") + "</td>" +
+                "<td>" + SupportUi.escapeHtml(ticket.assignedTo) + "</td>" +
+                "<td>" + SupportUi.escapeHtml(ticket.updatedAt || "") + "</td>";
             tableBody.appendChild(row);
         });
     }
 
-    document.addEventListener("DOMContentLoaded", function () {
+    SupportUi.onReady(function () {
         var root = document.querySelector("[data-support-ticket-list]");
         if (!root) {
             return;
@@ -41,20 +36,39 @@
         var searchButton = root.querySelector("[data-search-button]");
         var tableBody = root.querySelector("[data-results]");
         var message = root.querySelector("[data-message]");
+        var loadingContainer = root.querySelector("[data-loading-container]");
+        var detailPagePath = root.getAttribute("data-detail-page") || "/content/support-tickets/detail.html";
+        var debounceTimer;
 
         function loadTickets() {
-            showMessage(message, "Loading tickets...", false);
+            SupportUi.setLoading(loadingContainer, true);
+            SupportUi.showMessage(message, "Loading tickets...", false);
             SupportApi.listTickets(searchInput.value, statusSelect.value)
                 .then(function (payload) {
-                    message.classList.add("support-hidden");
-                    renderRows(tableBody, payload.items || []);
+                    SupportUi.hideMessage(message);
+                    renderRows(tableBody, payload.items || [], detailPagePath);
                 })
                 .catch(function (error) {
-                    showMessage(message, error.payload && error.payload.message ? error.payload.message : error.message, true);
+                    SupportUi.showMessage(message, error.payload && error.payload.message ? error.payload.message : error.message, true);
+                    tableBody.innerHTML = "";
+                })
+                .finally(function () {
+                    SupportUi.setLoading(loadingContainer, false);
                 });
         }
 
         searchButton.addEventListener("click", loadTickets);
+        searchInput.addEventListener("keydown", function (event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                loadTickets();
+            }
+        });
+        searchInput.addEventListener("input", function () {
+            window.clearTimeout(debounceTimer);
+            debounceTimer = window.setTimeout(loadTickets, 300);
+        });
+        statusSelect.addEventListener("change", loadTickets);
         loadTickets();
     });
 })(document);

@@ -1,33 +1,79 @@
-<div data-sly-use.clientlib="/libs/granite/sightly/templates/clientlib.html"
-     data-sly-use.model="com.ttn.support.core.models.TicketDetailModel"
-     data-sly-call="${clientlib.css @ categories='support.tickets'}"
-     data-sly-call="${clientlib.js @ categories='support.tickets'}"></div>
-<section class="support-app" data-support-ticket-detail>
-    <h2>${model.heading}</h2>
-    <div data-message class="support-hidden"></div>
-    <form class="support-form" data-update-form>
-        <label>Title <input type="text" data-title required/></label>
-        <label>Description <textarea data-description required></textarea></label>
-        <label>Priority
-            <select data-priority>
-                <option value="LOW">Low</option>
-                <option value="MEDIUM">Medium</option>
-                <option value="HIGH">High</option>
-            </select>
-        </label>
-        <label>Assignee <select data-assignee required></select></label>
-        <p>Status: <span data-status></span></p>
-        <p>Created by: <span data-created-by></span></p>
-        <p>Updated at: <span data-updated-at></span></p>
-        <button type="submit">Save Changes</button>
-    </form>
-    <div class="support-actions" data-status-actions></div>
-    <section class="support-comments">
-        <h3>Comments</h3>
-        <div data-comments></div>
-        <form data-comment-form>
-            <label>Add comment <textarea data-comment-message required></textarea></label>
-            <button type="submit">Add Comment</button>
-        </form>
-    </section>
+<section class="support-app"
+         data-sly-use.model="com.ttn.support.core.models.TicketDetailModel"
+         data-support-ticket-detail
+         data-list-page="${model.listPagePath}"
+         data-detail-page="${model.detailPagePath}">
+    <div class="support-card">
+        <header class="support-header support-header--compact">
+            <a class="support-link support-link--back" href="${model.listPagePath @ context='uri'}">Back to tickets</a>
+            <h1 class="support-header__title" data-ticket-title>${model.heading}</h1>
+            <p class="support-header__subtitle">Review and update ticket details, status, and comments.</p>
+        </header>
+
+        <div data-message class="support-hidden" role="alert" aria-live="polite"></div>
+
+        <div class="support-grid support-grid--2col">
+            <div class="support-panel">
+                <h2 class="support-panel__title">Ticket details</h2>
+                <form class="support-form" data-update-form>
+                    <div class="support-form__field">
+                        <label for="support-detail-title">Title <span class="support-required" aria-hidden="true">*</span></label>
+                        <input id="support-detail-title" type="text" data-title required/>
+                    </div>
+                    <div class="support-form__field">
+                        <label for="support-detail-description">Description <span class="support-required" aria-hidden="true">*</span></label>
+                        <textarea id="support-detail-description" data-description rows="5" required></textarea>
+                    </div>
+                    <div class="support-form__field">
+                        <label for="support-detail-priority">Priority</label>
+                        <select id="support-detail-priority" data-priority>
+                            <option value="LOW">Low</option>
+                            <option value="MEDIUM">Medium</option>
+                            <option value="HIGH">High</option>
+                        </select>
+                    </div>
+                    <div class="support-form__field">
+                        <label for="support-detail-assignee">Assignee <span class="support-required" aria-hidden="true">*</span></label>
+                        <select id="support-detail-assignee" data-assignee required></select>
+                    </div>
+                    <div class="support-form__actions">
+                        <button class="support-btn support-btn--primary" type="submit" data-save>Save Changes</button>
+                    </div>
+                </form>
+            </div>
+
+            <aside class="support-panel support-panel--meta">
+                <h2 class="support-panel__title">Overview</h2>
+                <dl class="support-meta">
+                    <div class="support-meta__row">
+                        <dt>Status</dt>
+                        <dd><span class="support-badge" data-status></span></dd>
+                    </div>
+                    <div class="support-meta__row">
+                        <dt>Created by</dt>
+                        <dd data-created-by></dd>
+                    </div>
+                    <div class="support-meta__row">
+                        <dt>Updated at</dt>
+                        <dd data-updated-at></dd>
+                    </div>
+                </dl>
+                <div class="support-actions" data-status-actions></div>
+            </aside>
+        </div>
+
+        <section class="support-comments support-panel">
+            <h2 class="support-panel__title">Comments</h2>
+            <div class="support-comments__list" data-comments></div>
+            <form class="support-form support-form--comment" data-comment-form>
+                <div class="support-form__field">
+                    <label for="support-comment-message">Add comment <span class="support-required" aria-hidden="true">*</span></label>
+                    <textarea id="support-comment-message" data-comment-message rows="3" required></textarea>
+                </div>
+                <div class="support-form__actions">
+                    <button class="support-btn support-btn--secondary" type="submit" data-comment-submit>Add Comment</button>
+                </div>
+            </form>
+        </section>
+    </div>
 </section>

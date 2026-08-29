@@ -26,6 +26,14 @@
                         name="./createPagePath"
                         rootPath="/content"
                         value="/content/support-tickets/create"/>
+                    <detailPagePath
+                        jcr:primaryType="nt:unstructured"
+                        sling:resourceType="granite/ui/components/coral/foundation/form/pathfield"
+                        fieldDescription="Path to the ticket detail page."
+                        fieldLabel="Detail Page Path"
+                        name="./detailPagePath"
+                        rootPath="/content"
+                        value="/content/support-tickets/detail"/>
                 </items>
             </column>
         </items>

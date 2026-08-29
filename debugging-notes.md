@@ -52,6 +52,17 @@
 
 **Fix:** Extend `filter.xml` and `ui.apps.structure` roots for archetype-generated forms assets and ticket pages only (commerce roots removed).
 
+## Detail page not populated after create redirect
+
+**Symptom:** After creating a ticket, redirect to `/content/support-tickets/detail.html?id=...` shows empty fields. A manual refresh loads the ticket correctly.
+
+**Cause:** `support.tickets` clientlib JS was included with `async=true` in `customfooterlibs.html`. On a cold navigation, the bundled script can finish loading after `DOMContentLoaded` has already fired, so `ticket-detail.js` never initialized.
+
+**Fix:**
+
+- Load `support.tickets` synchronously in `customfooterlibs.html` (remove `async=true`).
+- Add `SupportUi.onReady()` in `support-ui.js` and use it in `ticket-list.js`, `ticket-form.js`, and `ticket-detail.js` so initialization still runs when the script arrives after the DOM is ready.
+
 ## AEM analyser failures
 
 **Symptom:** `SlingServletResolver: Property sling.servlet.paths - Property is not allowed` and repoinit `with password` parse error.

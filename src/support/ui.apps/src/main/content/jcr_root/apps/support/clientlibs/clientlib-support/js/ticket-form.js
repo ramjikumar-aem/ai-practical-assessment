@@ -1,20 +1,7 @@
 (function (document) {
     "use strict";
 
-    function showMessage(container, message, isError) {
-        container.textContent = message;
-        container.className = isError ? "support-error" : "support-info";
-        container.classList.remove("support-hidden");
-    }
-
-    function showFieldErrors(container, fields) {
-        var messages = Object.keys(fields).map(function (key) {
-            return key + ": " + fields[key];
-        });
-        showMessage(container, messages.join(", "), true);
-    }
-
-    document.addEventListener("DOMContentLoaded", function () {
+    SupportUi.onReady(function () {
         var root = document.querySelector("[data-support-ticket-form]");
         if (!root) {
             return;
@@ -22,6 +9,8 @@
         var assigneeSelect = root.querySelector("[data-assignee]");
         var message = root.querySelector("[data-message]");
         var form = root.querySelector("form");
+        var submitButton = root.querySelector("[data-submit]");
+        var detailPagePath = root.getAttribute("data-detail-page") || "/content/support-tickets/detail.html";
 
         SupportApi.listUsers()
             .then(function (payload) {
@@ -33,7 +22,7 @@
                 });
             })
             .catch(function () {
-                showMessage(message, "Unable to load assignable users.", true);
+                SupportUi.showMessage(message, "Unable to load assignable users.", true);
             });
 
         form.addEventListener("submit", function (event) {
@@ -44,15 +33,25 @@
                 priority: root.querySelector("[data-priority]").value,
                 assignedTo: assigneeSelect.value
             };
+            SupportUi.setButtonsDisabled(root, true);
+            if (submitButton) {
+                submitButton.textContent = "Creating...";
+            }
             SupportApi.createTicket(payload)
                 .then(function (ticket) {
-                    window.location.href = "/content/support-tickets/detail.html?id=" + encodeURIComponent(ticket.id);
+                    window.location.href = SupportUi.buildDetailUrl(detailPagePath, ticket.id);
                 })
                 .catch(function (error) {
                     if (error.payload && error.payload.fields) {
-                        showFieldErrors(message, error.payload.fields);
+                        SupportUi.showFieldErrors(message, error.payload.fields);
                     } else {
-                        showMessage(message, error.payload && error.payload.message ? error.payload.message : error.message, true);
+                        SupportUi.showMessage(message, error.payload && error.payload.message ? error.payload.message : error.message, true);
+                    }
+                })
+                .finally(function () {
+                    SupportUi.setButtonsDisabled(root, false);
+                    if (submitButton) {
+                        submitButton.textContent = "Create Ticket";
                     }
                 });
         });

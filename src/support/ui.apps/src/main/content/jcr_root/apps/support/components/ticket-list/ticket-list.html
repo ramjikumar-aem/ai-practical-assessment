@@ -1,33 +1,55 @@
-<div data-sly-use.clientlib="/libs/granite/sightly/templates/clientlib.html"
-     data-sly-use.model="com.ttn.support.core.models.TicketListModel"
-     data-sly-call="${clientlib.css @ categories='support.tickets'}"
-     data-sly-call="${clientlib.js @ categories='support.tickets'}"></div>
-<section class="support-app" data-support-ticket-list data-create-page="${model.createPagePath}">
-    <h2>${model.heading}</h2>
-    <div class="support-toolbar">
-        <input type="search" data-search placeholder="Search tickets" aria-label="Search tickets"/>
-        <select data-status-filter aria-label="Filter by status">
-            <option value="">All statuses</option>
-            <option value="OPEN">Open</option>
-            <option value="IN_PROGRESS">In Progress</option>
-            <option value="RESOLVED">Resolved</option>
-            <option value="CLOSED">Closed</option>
-            <option value="CANCELLED">Cancelled</option>
-        </select>
-        <button type="button" data-search-button>Search</button>
-        <a href="${model.createPagePath @ context='uri'}">Create Ticket</a>
+<section class="support-app"
+         data-sly-use.model="com.ttn.support.core.models.TicketListModel"
+         data-support-ticket-list
+         data-create-page="${model.createPagePath}"
+         data-detail-page="${model.detailPagePath}">
+    <div class="support-card">
+        <header class="support-header">
+            <div class="support-header__titles">
+                <h1 class="support-header__title">${model.heading}</h1>
+                <p class="support-header__subtitle">Search, filter, and manage support requests.</p>
+            </div>
+            <a class="support-btn support-btn--primary" href="${model.createPagePath @ context='uri'}">Create Ticket</a>
+        </header>
+
+        <div class="support-toolbar" role="search">
+            <label class="support-toolbar__field">
+                <span class="support-toolbar__label">Search</span>
+                <input type="search" data-search placeholder="Search by title or description" aria-label="Search tickets"/>
+            </label>
+            <label class="support-toolbar__field">
+                <span class="support-toolbar__label">Status</span>
+                <select data-status-filter aria-label="Filter by status">
+                    <option value="">All statuses</option>
+                    <option value="OPEN">Open</option>
+                    <option value="IN_PROGRESS">In Progress</option>
+                    <option value="RESOLVED">Resolved</option>
+                    <option value="CLOSED">Closed</option>
+                    <option value="CANCELLED">Cancelled</option>
+                </select>
+            </label>
+            <button class="support-btn support-btn--secondary" type="button" data-search-button>Search</button>
+        </div>
+
+        <div data-message class="support-hidden" role="alert" aria-live="polite"></div>
+
+        <div class="support-table-wrap" data-loading-container>
+            <div class="support-loading support-hidden" data-loading aria-hidden="true">
+                <span class="support-loading__spinner"></span>
+                <span>Loading tickets...</span>
+            </div>
+            <table class="support-table">
+                <thead class="support-table__head">
+                    <tr>
+                        <th scope="col">Title</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Priority</th>
+                        <th scope="col">Assignee</th>
+                        <th scope="col">Updated</th>
+                    </tr>
+                </thead>
+                <tbody data-results></tbody>
+            </table>
+        </div>
     </div>
-    <div data-message class="support-hidden"></div>
-    <table class="support-table">
-        <thead>
-            <tr>
-                <th>Title</th>
-                <th>Status</th>
-                <th>Priority</th>
-                <th>Assignee</th>
-                <th>Updated</th>
-            </tr>
-        </thead>
-        <tbody data-results></tbody>
-    </table>
 </section>

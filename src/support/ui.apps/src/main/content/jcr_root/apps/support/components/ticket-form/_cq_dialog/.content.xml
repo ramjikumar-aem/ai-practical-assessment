@@ -18,6 +18,22 @@
                         fieldLabel="Heading"
                         name="./heading"
                         value="Create Ticket"/>
+                    <listPagePath
+                        jcr:primaryType="nt:unstructured"
+                        sling:resourceType="granite/ui/components/coral/foundation/form/pathfield"
+                        fieldDescription="Path to the ticket list page."
+                        fieldLabel="List Page Path"
+                        name="./listPagePath"
+                        rootPath="/content"
+                        value="/content/support-tickets"/>
+                    <detailPagePath
+                        jcr:primaryType="nt:unstructured"
+                        sling:resourceType="granite/ui/components/coral/foundation/form/pathfield"
+                        fieldDescription="Path to the ticket detail page."
+                        fieldLabel="Detail Page Path"
+                        name="./detailPagePath"
+                        rootPath="/content"
+                        value="/content/support-tickets/detail"/>
                 </items>
             </column>
         </items>

@@ -1,6 +1,7 @@
 #base=js
 
 support-api.js
+support-ui.js
 ticket-list.js
 ticket-form.js
 ticket-detail.js

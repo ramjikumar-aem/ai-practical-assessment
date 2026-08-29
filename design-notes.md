@@ -77,3 +77,7 @@ The list is the primary entry point. Detail is the primary workspace. Lifecycle 
 ## AEM-Specific Boundary
 
 AEM pages/components handle presentation and interaction. Java/Sling backend layers own request handling and domain behavior. Persistence access is isolated so implementation details do not leak into UI or API code.
+
+## Clientlib Loading
+
+Ticket UI scripts (`support.tickets`) are included from `support/components/page/customfooterlibs.html` without `async` so page init runs reliably after create → detail redirects. Component HTL does not embed clientlibs; CSS/JS are loaded at page level via `customheaderlibs.html` / `customfooterlibs.html`. Use `SupportUi.onReady()` for DOM-dependent initialization when scripts may load after `DOMContentLoaded`.
