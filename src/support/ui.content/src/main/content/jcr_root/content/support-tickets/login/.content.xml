@@ -3,17 +3,18 @@
     jcr:primaryType="cq:Page">
     <jcr:content
         jcr:primaryType="cq:PageContent"
-        jcr:title="Ticket Detail"
-        sling:authRequireLogin="{Boolean}true"
+        jcr:title="Support Login"
+        cq:cugEnabled="{Boolean}false"
+        sling:authRequireLogin="{Boolean}false"
         cq:template="/conf/support/settings/wcm/templates/page-content"
         sling:resourceType="support/components/page">
         <root
             jcr:primaryType="nt:unstructured"
             sling:resourceType="support/components/container"
             layout="responsiveGrid">
-            <ticket_detail
+            <login
                 jcr:primaryType="nt:unstructured"
-                sling:resourceType="support/components/ticket-detail"/>
+                sling:resourceType="support/components/login"/>
         </root>
     </jcr:content>
 </jcr:root>

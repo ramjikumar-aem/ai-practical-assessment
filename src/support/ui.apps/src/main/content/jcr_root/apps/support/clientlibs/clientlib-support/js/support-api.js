@@ -52,6 +52,9 @@
         }).then(function (response) {
             return response.json().then(function (payload) {
                 if (!response.ok) {
+                    if (response.status === 401) {
+                        SupportUi.redirectToLogin();
+                    }
                     var error = new Error(payload.message || "Request failed");
                     error.status = response.status;
                     error.payload = payload;

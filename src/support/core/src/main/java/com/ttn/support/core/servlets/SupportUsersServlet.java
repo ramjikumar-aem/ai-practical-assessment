@@ -1,7 +1,9 @@
 package com.ttn.support.core.servlets;
 
+import com.ttn.support.core.exception.SupportApiException;
 import com.ttn.support.core.models.UserRef;
 import com.ttn.support.core.service.UserService;
+import com.ttn.support.core.util.AuthSupport;
 import com.ttn.support.core.util.JsonResponseWriter;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
@@ -34,11 +36,17 @@ public class SupportUsersServlet extends SlingSafeMethodsServlet {
     protected void doGet(SlingHttpServletRequest request, SlingHttpServletResponse response)
             throws ServletException, IOException {
         try {
+            AuthSupport.requireAuthenticated(request);
             List<UserRef> users = userService.listAssignableUsers(request.getResourceResolver());
             response.setStatus(SlingHttpServletResponse.SC_OK);
             response.setContentType("application/json");
             response.setCharacterEncoding(StandardCharsets.UTF_8.name());
             response.getWriter().write(JsonResponseWriter.usersList(users).toString());
+        } catch (SupportApiException ex) {
+            response.setStatus(ex.getStatus());
+            response.setContentType("application/json");
+            response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+            response.getWriter().write(JsonResponseWriter.error(ex).toString());
         } catch (Exception ex) {
             response.setStatus(SlingHttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             response.setContentType("application/json");

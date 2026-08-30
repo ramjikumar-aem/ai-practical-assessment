@@ -5,3 +5,7 @@
 #
 
 $include "./default_rules.any"
+
+# Do not cache authenticated support app pages or APIs
+/1000 { /glob "/content/support-tickets*" /type "deny" }
+/1001 { /glob "/bin/api/support/*" /type "deny" }

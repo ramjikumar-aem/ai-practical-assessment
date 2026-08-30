@@ -4,6 +4,7 @@
     <jcr:content
         jcr:primaryType="cq:PageContent"
         jcr:title="Create Ticket"
+        sling:authRequireLogin="{Boolean}true"
         cq:template="/conf/support/settings/wcm/templates/page-content"
         sling:resourceType="support/components/page">
         <root

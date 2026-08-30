@@ -1,0 +1,35 @@
+<section class="support-app"
+         data-sly-use.model="com.ttn.support.core.models.LoginModel">
+    <div class="support-card support-card--narrow">
+        <header class="support-header support-header--compact">
+            <h1 class="support-header__title">${model.heading}</h1>
+            <p class="support-header__subtitle">${model.subtitle}</p>
+        </header>
+
+        <form class="support-form" action="/content/support-tickets/login/j_security_check" method="post">
+            <input type="hidden" name="_charset_" value="UTF-8"/>
+            <input type="hidden" name="resource"
+                   value="${request.requestParameterMap['resource'][0] || model.defaultRedirectPath @ context='attribute'}"/>
+
+            <p data-sly-test="${request.requestParameterMap['error'] || request.requestParameterMap['j_reason']}"
+               class="support-error"
+               role="alert">
+                Invalid username or password. Please try again.
+            </p>
+
+            <div class="support-form__field">
+                <label for="support-login-username">Username</label>
+                <input id="support-login-username" type="text" name="j_username" autocomplete="username" required/>
+            </div>
+
+            <div class="support-form__field">
+                <label for="support-login-password">Password</label>
+                <input id="support-login-password" type="password" name="j_password" autocomplete="current-password" required/>
+            </div>
+
+            <div class="support-form__actions">
+                <button class="support-btn support-btn--primary" type="submit">Sign In</button>
+            </div>
+        </form>
+    </div>
+</section>

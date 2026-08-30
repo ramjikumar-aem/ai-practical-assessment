@@ -7,6 +7,7 @@ import io.wcm.testing.mock.aem.junit5.AemContextExtension;
 import org.apache.sling.testing.mock.sling.servlet.MockRequestPathInfo;
 import org.apache.sling.testing.mock.sling.servlet.MockSlingHttpServletRequest;
 import org.apache.sling.testing.mock.sling.servlet.MockSlingHttpServletResponse;
+import org.apache.sling.api.resource.ResourceResolver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,6 +18,8 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(AemContextExtension.class)
 class SupportTicketsServletTest {
@@ -30,11 +33,31 @@ class SupportTicketsServletTest {
         servlet = context.registerInjectActivateService(new SupportTicketsServlet());
     }
 
+    private MockSlingHttpServletRequest requestForUser(String userId) {
+        ResourceResolver resolver = spy(context.resourceResolver());
+        when(resolver.getUserID()).thenReturn(userId);
+        return new MockSlingHttpServletRequest(resolver, context.bundleContext());
+    }
+
+    @Test
+    void doGetRejectsAnonymousUser() throws ServletException, IOException {
+        MockSlingHttpServletRequest request = requestForUser("anonymous");
+        MockRequestPathInfo pathInfo = (MockRequestPathInfo) request.getRequestPathInfo();
+        pathInfo.setResourcePath(SupportTicketsServlet.SERVLET_PATH);
+        pathInfo.setExtension("json");
+
+        MockSlingHttpServletResponse response = context.response();
+        servlet.doGet(request, response);
+
+        assertEquals(401, response.getStatus());
+        assertTrue(response.getOutputAsString().contains("UNAUTHORIZED"));
+    }
+
     @Test
     void doGetReturnsTicketListForCollectionPath() throws ServletException, IOException {
         seedTicket("967c4e7f-2620-4a67-a80a-c253f3d8aaf2");
 
-        MockSlingHttpServletRequest request = context.request();
+        MockSlingHttpServletRequest request = requestForUser("support-agent");
         MockRequestPathInfo pathInfo = (MockRequestPathInfo) request.getRequestPathInfo();
         pathInfo.setResourcePath(SupportTicketsServlet.SERVLET_PATH);
         pathInfo.setExtension("json");
@@ -52,7 +75,7 @@ class SupportTicketsServletTest {
         String ticketId = "967c4e7f-2620-4a67-a80a-c253f3d8aaf2";
         seedTicket(ticketId);
 
-        MockSlingHttpServletRequest request = context.request();
+        MockSlingHttpServletRequest request = requestForUser("support-agent");
         MockRequestPathInfo pathInfo = (MockRequestPathInfo) request.getRequestPathInfo();
         pathInfo.setResourcePath(SupportTicketsServlet.SERVLET_PATH);
         pathInfo.setExtension("json");
@@ -71,7 +94,7 @@ class SupportTicketsServletTest {
         String ticketId = "967c4e7f-2620-4a67-a80a-c253f3d8aaf2";
         seedTicket(ticketId);
 
-        MockSlingHttpServletRequest request = context.request();
+        MockSlingHttpServletRequest request = requestForUser("support-agent");
         MockRequestPathInfo pathInfo = (MockRequestPathInfo) request.getRequestPathInfo();
         pathInfo.setResourcePath(SupportTicketsServlet.SERVLET_PATH);
         pathInfo.setExtension("json");

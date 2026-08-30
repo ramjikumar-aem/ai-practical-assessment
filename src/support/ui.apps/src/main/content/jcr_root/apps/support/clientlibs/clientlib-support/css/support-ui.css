@@ -41,6 +41,11 @@
     padding: 1.5rem;
 }
 
+.support-card--narrow {
+    max-width: 28rem;
+    margin: 2rem auto;
+}
+
 .support-header {
     display: flex;
     align-items: flex-start;
@@ -53,6 +58,24 @@
 .support-header--compact {
     display: block;
     margin-bottom: 1.25rem;
+}
+
+.support-user-bar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.support-user-bar__identity {
+    color: var(--support-muted);
+    font-size: 0.9rem;
+}
+
+.support-user-bar__logout {
+    text-decoration: none;
 }
 
 .support-header__title {

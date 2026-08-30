@@ -4,6 +4,7 @@
          data-list-page="${model.listPagePath}"
          data-detail-page="${model.detailPagePath}">
     <div class="support-card">
+        <sly data-sly-resource="${'user-bar' @ resourceType='support/components/user-bar'}"></sly>
         <header class="support-header support-header--compact">
             <a class="support-link support-link--back" href="${model.listPagePath @ context='uri'}">Back to tickets</a>
             <h1 class="support-header__title" data-ticket-title>${model.heading}</h1>

@@ -1,0 +1,7 @@
+<div class="support-user-bar"
+     data-sly-use.model="com.ttn.support.core.models.UserBarModel"
+     data-sly-test="${model.authenticated}">
+    <span class="support-user-bar__identity">Signed in as ${model.userId}</span>
+    <a class="support-user-bar__logout support-btn support-btn--secondary"
+       href="${model.logoutUrl @ context='uri'}">Sign Out</a>
+</div>

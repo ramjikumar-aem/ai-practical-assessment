@@ -5,6 +5,7 @@ import com.ttn.support.core.models.Comment;
 import com.ttn.support.core.models.Ticket;
 import com.ttn.support.core.service.CommentService;
 import com.ttn.support.core.service.TicketService;
+import com.ttn.support.core.util.AuthSupport;
 import com.ttn.support.core.util.JsonResponseWriter;
 import com.ttn.support.core.util.SupportApiRouteParser;
 import com.ttn.support.core.util.SupportApiRouteParser.TicketRoute;
@@ -46,6 +47,7 @@ public class SupportTicketsServlet extends SlingAllMethodsServlet {
     protected void doGet(SlingHttpServletRequest request, SlingHttpServletResponse response)
             throws ServletException, IOException {
         try {
+            AuthSupport.requireAuthenticated(request);
             TicketRoute route = SupportApiRouteParser.resolve(request.getRequestPathInfo());
             if (route.isUnknown()) {
                 writeNotFound(response, "Endpoint not found");
@@ -77,6 +79,7 @@ public class SupportTicketsServlet extends SlingAllMethodsServlet {
     protected void doPost(SlingHttpServletRequest request, SlingHttpServletResponse response)
             throws ServletException, IOException {
         try {
+            AuthSupport.requireAuthenticated(request);
             TicketRoute route = SupportApiRouteParser.resolve(request.getRequestPathInfo());
             if (route.isUnknown()) {
                 writeNotFound(response, "Endpoint not found");
@@ -125,6 +128,7 @@ public class SupportTicketsServlet extends SlingAllMethodsServlet {
 
     private void handlePatch(SlingHttpServletRequest request, SlingHttpServletResponse response) throws IOException {
         try {
+            AuthSupport.requireAuthenticated(request);
             TicketRoute route = SupportApiRouteParser.resolve(request.getRequestPathInfo());
             if (!route.isTicket()) {
                 writeNotFound(response, "Ticket id is required");

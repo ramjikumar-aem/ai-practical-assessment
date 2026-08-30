@@ -39,3 +39,7 @@
 
 # Enable specific mime types clientlibs directories
 /0105 { /type "allow" /extension '(gltf|stl|obj|usdz|glb)' /method "GET" /path "/content/dam/*" }
+
+# Support ticket API and publish login (Sling form auth)
+/0201 { /type "allow" /method "(GET|POST|PATCH)" /url "/bin/api/support/*" }
+/0202 { /type "allow" /method "POST" /url "/content/support-tickets/login/j_security_check" }

@@ -11,3 +11,7 @@ $include "./default_filters.any"
 
 # Allow manifest.webmanifest files located in the content
 /0102 { /type "allow" /extension "webmanifest" /path "/content/*/manifest" }
+
+# Support ticket API and publish login (Sling form auth)
+/0201 { /type "allow" /method "(GET|POST|PATCH)" /url "/bin/api/support/*" }
+/0202 { /type "allow" /method "POST" /url "/content/support-tickets/login/j_security_check" }

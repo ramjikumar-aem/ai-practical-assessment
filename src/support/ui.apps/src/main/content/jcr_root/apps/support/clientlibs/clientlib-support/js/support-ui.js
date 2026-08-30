@@ -83,6 +83,12 @@
         }
     }
 
+    function redirectToLogin() {
+        var resource = window.location.pathname + window.location.search;
+        window.location.href = "/content/support-tickets/login.html?resource="
+            + encodeURIComponent(resource);
+    }
+
     window.SupportUi = {
         escapeHtml: escapeHtml,
         formatStatusLabel: formatStatusLabel,
@@ -94,6 +100,7 @@
         showFieldErrors: showFieldErrors,
         setLoading: setLoading,
         setButtonsDisabled: setButtonsDisabled,
-        onReady: onReady
+        onReady: onReady,
+        redirectToLogin: redirectToLogin
     };
 })(window);
