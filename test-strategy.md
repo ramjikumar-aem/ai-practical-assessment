@@ -1,83 +1,99 @@
 # Test Strategy
 
-## 1. Objective
+## Test Scope
 
-Verify functional correctness, lifecycle enforcement, persistence, validation, API behavior, and meaningful user-facing failure handling.
+In scope:
+- Status state machine (mandatory integration tests)
+- Ticket/comment validation
+- API route parsing and auth rejection
+- Sling model defaults
+- Servlet error mapping
+- Logout servlet and auth path helpers
 
-## 2. Test Pyramid
+Out of scope (documented):
+- Full browser E2E automation (manual verification on AEM SDK)
+- Dispatcher integration tests in CI
+- Load/performance testing
+- Cross-instance author/publish data sync
 
-### Mandatory: Integration Tests
-The required integration suite focuses on the status state machine.
+## Unit Tests
 
-Valid cases:
-- Open → In Progress
-- Open → Cancelled
-- In Progress → Resolved
-- In Progress → Cancelled
-- Resolved → Closed
+Location: `src/support/core/src/test/java`
 
-Invalid cases include at minimum:
-- Open → Resolved
-- Open → Closed
-- In Progress → Open
-- Resolved → In Progress
-- Closed → any state
-- Cancelled → any state
+| Area | Test class | Coverage |
+|---|---|---|
+| State machine | `StatusTransitionServiceTest` | Allowed/blocked transitions, terminal states |
+| Validation | `TicketValidatorTest` | Required fields, priority enum |
+| Route parser | `SupportApiRouteParserTest` | Selector routing for tickets/status/comments |
+| Auth | `AuthSupportTest` | Anonymous rejection |
+| JSON errors | `JsonResponseWriterTest` | Error envelope shape |
+| Login redirect | `SupportLoginRedirectTest` | Open-redirect sanitization |
+| Auth paths | `SupportAuthPathsTest` | Protected paths, login/logout URL builders |
+| Sling models | `TicketListModelTest`, `TicketFormModelTest`, `TicketDetailModelTest`, `LoginModelTest`, `UserBarModelTest` | Dialog defaults, logout URL |
+| Servlets | `SupportTicketsServletTest`, `SupportLogoutServletTest` | Anonymous rejection, logout flow |
+| Archetype samples | `HelloWorldModelTest`, `LoggingFilterTest`, etc. | Archetype boilerplate |
 
-For each invalid case, assert:
-1. backend rejection;
-2. appropriate error response;
-3. persisted status remains unchanged.
+## Component Tests
 
-### Unit Tests
-Where the transition rule is implemented as a pure service/map, test:
-- allowed target lookup;
-- terminal states;
-- null/unknown status handling;
-- validation helpers.
+- HTL components are not unit-tested in isolation; validated via AEM SDK manual render and `htl-maven-plugin` compile during `ui.apps` build.
+- Clientlib JS (`ticket-list.js`, `ticket-form.js`, `ticket-detail.js`) verified manually and via API integration from browser.
 
-### API/Integration Coverage
-Test:
-- create valid ticket;
-- required-field rejection;
-- list;
-- detail and missing detail;
-- update supported fields;
-- keyword search;
-- status filter;
-- comment creation;
-- comment validation;
-- persistence across restart or equivalent lifecycle verification.
+## API / Integration Tests
 
-### UI Verification
-Verify:
-- loading;
-- empty/no-results;
-- backend validation messages;
-- invalid-transition message;
-- generic request failure;
-- successful search/filter/update/comment flows.
+Location: `tests/src/test/java/com/ttn/support/it`
 
-## 3. Test Data
+**`TicketStatusTransitionIntegrationTest`** — 11 parameterized cases:
 
-Use deterministic fixture users and tickets. Each lifecycle test should begin from a known persisted state and avoid cross-test coupling.
+Valid (5):
+- OPEN → IN_PROGRESS
+- OPEN → CANCELLED
+- IN_PROGRESS → RESOLVED
+- IN_PROGRESS → CANCELLED
+- RESOLVED → CLOSED
 
-## 4. Exit Criteria
+Invalid (6):
+- OPEN → RESOLVED, OPEN → CLOSED
+- IN_PROGRESS → OPEN
+- RESOLVED → IN_PROGRESS
+- CLOSED → OPEN, CANCELLED → OPEN
 
-Before completion:
-- all mandatory transition integration tests pass;
-- no invalid transition mutates state;
-- core acceptance criteria are verified;
-- build/test commands are documented;
-- test results are recorded in `test-results.md`.
+Each invalid case asserts `409 INVALID_STATUS_TRANSITION` and unchanged persisted status.
 
-## 5. Traceability
+**`SupportTicketsServletTest`** — anonymous `401`, authenticated list/detail.
 
-| Area | Primary Evidence |
+## Edge Case Tests
+
+| Edge case | How tested |
 |---|---|
-| State machine | Integration test suite |
-| Backend validation | Negative API tests |
-| Search/filter | Functional test |
-| Persistence | Restart/lifecycle verification |
-| UI errors | UI test or documented manual verification |
-| Regression | Full automated suite |
+| Terminal state transition | Integration test (CLOSED/CANCELLED → OPEN) |
+| Open redirect on login `resource` param | `SupportLoginRedirectTest` |
+| Anonymous API access | `AuthSupportTest`, `SupportTicketsServletTest` |
+| Unknown API route | `SupportApiRouteParserTest` |
+| Logout with missing/malicious `resource` | `SupportLogoutServletTest` |
+
+## Tests Not Covered (and why)
+
+| Gap | Reason |
+|---|---|
+| Full servlet HTTP integration for every API endpoint | Covered by service-layer integration tests + manual SDK verification; adding full HTTP mock suite is diminishing returns for assessment scope |
+| Publish CUG/login browser tests | Requires running AEM publish + manual or Cypress setup not in CI |
+| Author vs publish data consistency | Architectural decision (separate `/var` per instance); documented, not automated |
+| Oak index/query performance | In-memory search sufficient at current scale |
+| CSRF token on form login | Granite form auth handles; optional manual verify |
+
+## Exit Criteria
+
+- `mvn clean install` passes.
+- All 11 mandatory transition integration tests pass.
+- Results recorded in [test-results.md](test-results.md).
+- Manual publish verification checklist in [database/setup-notes.md](database/setup-notes.md).
+
+## Traceability
+
+| Requirement | Evidence |
+|---|---|
+| State machine | `TicketStatusTransitionIntegrationTest` |
+| Validation | `TicketValidatorTest`, servlet tests |
+| Auth | `AuthSupportTest`, publish manual checklist |
+| Persistence | Restart verification (manual) + JCR repository tests via integration seed |
+| UI flows | `ui-flow.md` + manual SDK test |

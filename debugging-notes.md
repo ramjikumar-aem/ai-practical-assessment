@@ -1,138 +1,171 @@
 # Debugging Notes
 
-## Archetype post-generate failure (Windows)
+## Issue 1: Detail page empty after create redirect
 
-**Symptom:** `FileSystemException` on dispatcher `default.vhost` symlink.
+### Problem
+After creating a ticket, redirect to `/content/support-tickets/detail.html?id=...` showed empty fields. Manual refresh loaded the ticket correctly.
 
-**Impact:** Archetype still generated usable modules under `src/support/`.
+### How I Investigated
+- Reproduced create → redirect flow on author.
+- Checked browser Network tab: API returned `200` with ticket data.
+- Noticed `support.tickets` clientlib loaded with `async=true` in `customfooterlibs.html`.
+- Confirmed `ticket-detail.js` registered `DOMContentLoaded` listener that had already fired.
 
-**Mitigation:** Removed `dispatcher*` modules from parent `pom.xml` for local builds.
+### How AI Helped
+AI suggested the async script timing hypothesis and proposed `SupportUi.onReady()` pattern to handle late script load.
 
-## Servlet PATCH support
+### What I Validated
+- Removed `async` from footer clientlib include.
+- Added `SupportUi.onReady()` and updated list/form/detail JS to use it.
+- Re-tested create → detail flow without manual refresh.
 
-**Symptom:** `doPatch` not available on `SlingAllMethodsServlet` parent.
+### Final Fix
+- Synchronous clientlib load in `customfooterlibs.html`.
+- `SupportUi.onReady()` in `support-ui.js` used by all ticket page scripts.
 
-**Fix:** Override `service()` and route `PATCH` to `handlePatch()`.
+---
 
-## Integration test classpath
+## Issue 2: Publish shows "Authentication required" instead of login redirect
 
-**Symptom:** `NoClassDefFoundError` for Core Components internal classes when using `AppAemContext`.
+### Problem
+Anonymous user opened `/content/support-tickets.html` on publish and saw an API error message in the page body instead of being redirected to login.
 
-**Fix:** Use plain `AemContextBuilder` with `SupportTestContext.SUPPORT_SERVICES` callback (no Core Components plugin).
+### How I Investigated
+- Confirmed HTML page rendered (CUG did not intercept before render).
+- Traced `ticket-list.js` → `support-api.js` → `401` from `AuthSupport.requireAuthenticated()`.
+- Reviewed CUG config in `ui.content` and publish OSGi configs.
 
-## User assignee validation
+### How AI Helped
+AI recommended layered auth: CUG properties, `SupportAuthRedirectFilter` for publish HTML, client-side `redirectToLogin()` on API `401`, and publish OSGi for `FormAuthenticationHandler` / `LoginSelectorHandler`.
 
-**Symptom:** `UserManager` may not resolve users in AEM Mock tests.
+### What I Validated
+- Deployed `ui.content`, `ui.config`, and `core` bundle to publish.
+- Verified anonymous page request redirects to login.
+- Verified API `401` triggers client redirect.
 
-**Mitigation:** State-machine integration tests seed tickets directly via `TicketRepository`, bypassing user validation on create.
+### Final Fix
+- CUG + `sling:authRequireLogin` on protected pages; login page excluded.
+- `SupportAuthRedirectFilter` (publish runmode).
+- `support-api.js` calls `SupportUi.redirectToLogin()` on `401`.
 
-## ui.apps HTL compile failures (adaptive forms)
+---
 
-**Symptom:** `mvn clean install` fails in `support.ui.apps` with missing packages such as `com.adobe.cq.forms.core.components.models.form`.
+## Issue 3: Login fails on publish (Granite / system paths)
 
-**Cause:** Archetype generated adaptive form HTL components without compile-time model JARs.
+### Problem
+Login form returned `500` (`/libs/granite does not exist`), then `403` on `/system/sling/login`, then invalid credentials with custom `request.login()` servlet.
 
-**Fix:** Exclude archetype-only adaptive form folders from HTL Java generation in `ui.apps/pom.xml`:
+### How I Investigated
+- Tested each login endpoint on publish (`:4503`).
+- Read AEM publish security docs: `/libs/granite` not deployed on publish.
+- Verified repoinit users exist via `curl -u support-agent:support123 .../users.json`.
 
-```xml
-<excludes>
-  <exclude>apps/support/components/adaptiveForm/**</exclude>
-</excludes>
-```
+### How AI Helped
+AI traced Sling Form Authentication flow and recommended `POST /content/support-tickets/login/j_security_check` with `FormAuthenticationHandler` OSGi config instead of Granite or custom login servlets.
 
-## CIF / commerce archetype cleanup
+### What I Validated
+- Credentials work via Basic auth curl on publish.
+- Form post to `j_security_check` establishes session cookie.
+- Dispatcher allows `POST` to `j_security_check`.
 
-**Symptom:** `ui.content` contained unused CIF commerce site content under `/content/support`, `/var/commerce`, commerce templates, and experience fragments tied to the commerce storefront.
+### Final Fix
+- Login HTL form action → `/content/support-tickets/login/j_security_check`.
+- Removed custom `SupportLoginServlet`.
+- Publish OSGi: `org.apache.sling.auth.form.FormAuthenticationHandler`.
+- Dispatcher filter allow rule for login POST.
 
-**Fix:** Removed CIF-related content, components, clientlibs, OSGi configs, and template references. Ticket app content now deploys only `/content/support-tickets` plus shared `conf/support` settings.
+---
 
-## Vault filter coverage (ui.apps / ui.content)
+## Issue 4: Redirect to `/libs/granite/core/content/login.html` on publish
 
-**Symptom:** `not covered by a filter rule` for `/apps/fd`, forms DAM content, and `/content/support-tickets`.
+### Problem
+Unauthenticated publish requests redirected to Granite default login URL, which does not exist on publish.
 
-**Fix:** Extend `filter.xml` and `ui.apps.structure` roots for archetype-generated forms assets and ticket pages only (commerce roots removed).
+### How I Investigated
+- Opened failing URL directly on `:4503` — 404/missing tree.
+- Checked `LoginSelectorHandler` default login page on publish (unset → Granite default).
 
-## Detail page not populated after create redirect
+### How AI Helped
+AI proposed `LoginSelectorHandler` + `SlingAuthenticator` publish OSGi configs, `granite:AuthenticationRequired` mixin on content root, and `GraniteLoginRedirectFilter` as safety net.
 
-**Symptom:** After creating a ticket, redirect to `/content/support-tickets/detail.html?id=...` shows empty fields. A manual refresh loads the ticket correctly.
+### What I Validated
+- After OSGi deploy, protected pages redirect to `/content/support-tickets/login.html`.
+- Stray Granite login URLs redirect to support login.
 
-**Cause:** `support.tickets` clientlib JS was included with `async=true` in `customfooterlibs.html`. On a cold navigation, the bundled script can finish loading after `DOMContentLoaded` has already fired, so `ticket-detail.js` never initialized.
+### Final Fix
+- `com.day.cq.auth.impl.LoginSelectorHandler.cfg.json` (publish).
+- `granite:loginPath` on `/content/support-tickets` page node.
+- `GraniteLoginRedirectFilter` in `core`.
 
-**Fix:**
+---
 
-- Load `support.tickets` synchronously in `customfooterlibs.html` (remove `async=true`).
-- Add `SupportUi.onReady()` in `support-ui.js` and use it in `ticket-list.js`, `ticket-form.js`, and `ticket-detail.js` so initialization still runs when the script arrives after the DOM is ready.
+## Issue 5: Logout not available after login
 
-## CUG / dispatcher authentication pitfalls
+### Problem
+Users could sign in on publish but had no way to end the session.
 
-**Symptom:** Anonymous user opens `/content/support-tickets.html` and sees **Authentication required** in the page instead of a login redirect.
+### How I Investigated
+- Confirmed no logout UI or servlet existed.
+- Ruled out `/system/sling/logout.html` (same publish restrictions as login).
 
-**Cause:** The HTML page rendered, but CUG did not redirect. The ticket list JavaScript called `/bin/api/support/tickets.json`, received `401` from `AuthSupport`, and displayed the API error message.
+### How AI Helped
+AI proposed `SupportLogoutServlet` with page selector `logout` calling `Authenticator.logout()`, plus `user-bar` component on ticket pages.
 
-**Fix:**
+### What I Validated
+- Unit tests for `SupportLogoutServlet` and `UserBarModel`.
+- Manual: Sign Out → login page → protected pages require login again.
 
-- Correct CUG packaging: single `cq:ClosedUserGroup` node with `rep:principalNames="[support-agents,support-managers,administrators]"`.
-- Set `sling:authRequireLogin=true` on protected pages and `false` on `/content/support-tickets/login`.
-- Deploy `SupportAuthRedirectFilter` in `core` (publish runmode) to redirect anonymous HTML requests to login.
-- Client-side fallback: `support-api.js` calls `SupportUi.redirectToLogin()` on API `401`.
+### Final Fix
+- `SupportLogoutServlet` on `support/components/page` selector `logout`.
+- `user-bar` component on list/create/detail.
+- Logout URL: `/content/support-tickets.logout.html?resource=/content/support-tickets/login.html`.
 
-**Symptom:** Anonymous users see ticket list HTML, or authenticated users see stale anonymous content.
+---
 
-**Cause:** Dispatcher cached the page before CUG was enabled, or `/allowAuthorized` caching is misconfigured.
+## Issue 6: Maven / archetype build failures
 
-**Fix:**
+### Problem
+Various `mvn clean install` failures: HTL compile errors (commerce/adaptive forms), vault filter gaps, PATCH servlet, integration test classpath, AEM analyser.
 
-- Deny cache for `/content/support-tickets*` and `/bin/api/support/*` in dispatcher cache rules.
-- Keep `/allowAuthorized "0"` on publish farms.
-- Flush dispatcher cache after deploying CUG.
+### How I Investigated
+- Read Maven error output per module.
+- Identified archetype-generated paths not needed for ticket app.
 
-**Symptom:** Login form shows **Invalid username or password** but `support-agent` exists on publish.
+### How AI Helped
+AI suggested HTL excludes in `ui.apps/pom.xml`, vault filter updates, `service()` override for PATCH, plain `AemContextBuilder` without Core Components plugin, and removing disallowed `SlingServletResolver` OSGi config.
 
-**Cause:** Custom `/bin/support/login` used `request.login()`, which does not authenticate repoinit JCR users on publish. Credentials were valid in the repository but the HTTP session was never established.
+### What I Validated
+- Full reactor `mvn clean install` passes.
+- 11 integration tests + expanded unit tests pass.
 
-**Fix:** Post the login form to `/content/support-tickets/login/j_security_check` and deploy publish OSGi config `org.apache.sling.auth.form.FormAuthenticationHandler` with `form.login.form=/content/support-tickets/login.html`.
+### Final Fix
+- See `review-fixes.md` and individual fixes in module POMs and `ui.config`.
 
-**Symptom:** Login form returns `403 Forbidden` for `/system/sling/login`.
+---
 
-**Cause:** Publish blocks bundled `/system/sling/login` for anonymous form posts.
+## Issue 7: Author vs publish ticket data differs
 
-**Fix:** Post to `/bin/support/login` (`SupportLoginServlet` in `core`). The servlet uses `request.login()` and redirects to the sanitized `resource` path.
+### Problem
+Tickets created on author did not appear on publish (and vice versa).
 
-**Symptom:** Login form returns `500` — `The tree for /libs/granite does not exist` at `/libs/granite/security/login`.
+### How I Investigated
+- Inspected CRXDE on both instances: separate `/var/support-tickets` trees.
+- Confirmed `ui.content` does not package `/var` data.
 
-**Cause:** Publish (`:4503`) does not expose `/libs/granite`. The login form was posting to the Granite login servlet used on author.
+### How AI Helped
+AI explained AEM author/publish repository isolation and recommended publish as single ticket runtime (or external DB for true centralization).
 
-**Fix:** Post the login form to `/content/support-tickets/login/j_security_check` with `j_username`, `j_password`, `_charset_`, and `resource`. Ensure dispatcher allows `POST /content/support-tickets/login/j_security_check`.
+### What I Validated
+- Created ticket on publish only → visible on publish.
+- Documented in setup notes.
 
-**Symptom:** Login form submits but auth fails through dispatcher.
+### Final Fix
+- Documented in `database/setup-notes.md` and requirements assumptions: use publish (`:4503`) for ticket operations; seed curl examples target publish.
 
-**Cause:** Dispatcher filter blocks `/libs/granite/security/login` or `/bin/api/support/*`.
-
-**Fix:** Add filter allow rules for `POST /content/support-tickets/login/j_security_check` and support API paths (see `dispatcher/.../filters/filters.any`).
-
-**Symptom:** Login page itself requires login (redirect loop).
-
-**Cause:** `cq:loginPath` not set on CUG root page, or login page path is wrong.
-
-**Fix:** Set `cq:loginPath="/content/support-tickets/login"` on `/content/support-tickets` and replicate to publish.
-
-**Symptom:** **Support Login** component not found in component browser.
-
-**Cause:** Component was missing `_cq_dialog` and `jcr:description`, so it did not match other ticket components in authoring search.
-
-**Fix:** Add `support/components/login/_cq_dialog` with `heading`, `subtitle`, and `defaultRedirectPath` fields; set `jcr:description` on the component definition.
-
-**Symptom:** **Sign Out** does nothing, or user remains authenticated after clicking logout.
-
-**Cause:** Logout URL points to `/system/sling/logout.html` (blocked on publish), or `SupportLogoutServlet` is not deployed.
-
-**Fix:** Use `/content/support-tickets.logout.html?resource=/content/support-tickets/login.html` (handled by `SupportLogoutServlet`). Verify the form-auth cookie is cleared and protected pages redirect to login again.
+---
 
 ## AEM analyser failures
 
-**Symptom:** `SlingServletResolver: Property sling.servlet.paths - Property is not allowed` and repoinit `with password` parse error.
+**Symptom:** `SlingServletResolver: Property sling.servlet.paths - Property is not allowed` and repoinit password parse errors.
 
-**Fix:**
-
-- Remove `org.apache.sling.servlets.resolver.SlingServletResolver.cfg.json` (servlets stay registered via OSGi `@Component` properties in `core`)
-- Repoinit creates paths/groups/users; verify on target SDK if password syntax is rejected in analyser
+**Fix:** Remove `SlingServletResolver.cfg.json`; servlets register via `@Component` properties. Verify repoinit user password syntax on target SDK.

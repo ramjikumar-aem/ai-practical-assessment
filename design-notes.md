@@ -1,107 +1,122 @@
 # Design Notes
 
-## Architecture
+## Architecture Overview (frontend, backend, database)
 
-The proposed architecture separates:
-- AEM-rendered frontend components/pages;
-- backend API endpoints;
-- application services for ticket, comment, validation, and lifecycle logic;
-- a persistence adapter;
-- AEM User Management integration.
+```mermaid
+flowchart TB
+    subgraph frontend [Frontend - ui.apps]
+        HTL[HTL Components]
+        CL[clientlib-support JS/CSS]
+        HTL --> CL
+    end
+    subgraph backend [Backend - core OSGi bundle]
+        Servlets[SupportTicketsServlet / SupportUsersServlet]
+        Services[TicketService / CommentService / StatusTransitionService]
+        Repos[TicketRepository / CommentRepository]
+        Auth[AuthSupport / Filters / LogoutServlet]
+        Servlets --> Services --> Repos
+        Servlets --> Auth
+    end
+    subgraph database [Persistence - JCR]
+        Var["/var/support-tickets/tickets"]
+        Comments["/var/support-tickets/comments"]
+    end
+    subgraph content [Content - ui.content]
+        Pages["/content/support-tickets/*"]
+    end
+    CL -->|fetch JSON| Servlets
+    Pages --> HTL
+    Repos --> Var
+    Repos --> Comments
+```
 
-This separation keeps the status state machine independent of transport and UI code.
+Layers:
+- **Frontend:** AEM pages + HTL components (`ticket-list`, `ticket-form`, `ticket-detail`, `login`, `user-bar`) and `support.tickets` clientlib.
+- **Backend:** Sling servlets at `/bin/api/support/*`, domain services, validation, state machine, auth filters.
+- **Database:** JCR nodes under `/var/support-tickets` (repoinit-created, not in `ui.content`).
+
+## Frontend Design
+
+- **Pages:** `/content/support-tickets` (list), `/create`, `/detail`, `/login`.
+- **Components:** Each ticket view is a dedicated HTL component with Sling Model for authored paths (`createPagePath`, `detailPagePath`, etc.).
+- **Clientlibs:** Loaded at page level via `customheaderlibs.html` (CSS) and `customfooterlibs.html` (JS, synchronous).
+- **API client:** `support-api.js` wraps `fetch` with credentials; redirects to login on `401`.
+- **Init pattern:** `SupportUi.onReady()` ensures JS runs after create→detail navigation even when script loads late.
+- **Auth UI:** Login form posts to `/content/support-tickets/login/j_security_check`. User bar shows signed-in user and Sign Out link.
+
+## Backend Design
+
+| Layer | Responsibility |
+|---|---|
+| `SupportTicketsServlet` | REST-style routing via selectors: collection, ticket, status, comments |
+| `SupportUsersServlet` | List assignable AEM users |
+| `TicketService` / `CommentService` | Business orchestration, validation delegation |
+| `StatusTransitionService` | Authoritative transition map |
+| `TicketValidator` | Required fields, enums, user existence |
+| `TicketRepository` / `CommentRepository` | JCR CRUD under `/var/support-tickets` |
+| `AuthSupport` | Reject `anonymous` on API |
+| `SupportAuthRedirectFilter` | Publish-only HTML redirect to login |
+| `SupportLogoutServlet` | Page selector `logout` → `Authenticator.logout()` |
+
+**API base:** `/bin/api/support`  
+**Error model:** `SupportApiException` → JSON `{ code, message, fields? }`
+
+## Database Design
+
+See [database/schema-or-migrations/jcr-schema.md](database/schema-or-migrations/jcr-schema.md).
+
+- **Tickets:** `/var/support-tickets/tickets/{uuid}` — properties: title, description, priority, status, assignedTo, createdBy, createdAt, updatedAt.
+- **Comments:** `/var/support-tickets/comments/{uuid}` — properties: ticketId, message, createdBy, createdAt.
+- **Users:** AEM User Management (not duplicated in `/var`).
+- **ACL:** Repoinit grants `support-agents`, `support-managers`, `administrators` read/write on `/var/support-tickets`.
+- **Content ACL/CUG:** `ui.content` sets CUG on `/content/support-tickets` and read policies for support groups.
+
+**Note:** Author and publish are separate JCR instances; ticket data in `/var` is not replicated by default. Use publish as the ticket runtime.
+
+## Validation Strategy
+
+- **Server-side only** for business rules (required fields, priority enum, assignee existence, transitions).
+- `TicketValidator` returns field-level errors → `ValidationException` (`400 VALIDATION_ERROR`).
+- `StatusTransitionService` rejects illegal transitions → `InvalidTransitionException` (`409 INVALID_STATUS_TRANSITION`).
+- UI displays API error messages; does not rely on UI-only transition guards.
+
+## Error Handling Strategy
+
+| Code | HTTP | When |
+|---|---|---|
+| `VALIDATION_ERROR` | 400 | Missing/invalid input |
+| `UNAUTHORIZED` | 401 | Anonymous API caller |
+| `NOT_FOUND` | 404 | Ticket/comment/user not found |
+| `INVALID_STATUS_TRANSITION` | 409 | Illegal lifecycle change |
+| `INTERNAL_ERROR` | 500 | Unexpected failure |
+
+Frontend: `SupportUi.showMessage()` for inline errors; `support-api.js` handles `401` redirect.
+
+## Testing Strategy Link
+
+See [test-strategy.md](test-strategy.md) and [test-results.md](test-results.md).
 
 ## Status State Machine
 
-Use a centralized transition map:
-
-- `OPEN`: `IN_PROGRESS`, `CANCELLED`
-- `IN_PROGRESS`: `RESOLVED`, `CANCELLED`
-- `RESOLVED`: `CLOSED`
-- `CLOSED`: no transitions
-- `CANCELLED`: no transitions
-
-The transition service should:
-1. load the current ticket;
-2. verify the requested target status;
-3. reject illegal transitions before persistence;
-4. update status and `updatedAt` atomically within the persistence boundary where supported.
-
-## Persistence Design
-
-Ticket and comment data is stored in JCR under `/var/support-tickets` (see `database/schema-or-migrations/jcr-schema.md`). This path is created via repoinit and is **not** deployed through `ui.content`.
-
-## API Base Path
-
-Implemented servlets:
-
-- `GET/POST/PATCH /bin/api/support/tickets.json`
-- `GET /bin/api/support/users`
-
-Selector routing examples:
-
-- `GET /bin/api/support/tickets.{id}.json`
-- `POST /bin/api/support/tickets.{id}.status.json`
-- `GET/POST /bin/api/support/tickets.{id}.comments.json`
-
-## Priority Values
-
-`LOW`, `MEDIUM`, `HIGH`
-
-## User Role Mapping
-
-| AEM group | Role string |
-|---|---|
-| administrators | admin |
-| support-managers | manager |
-| (default) | agent |
-
-## Error Model
-
-Use a consistent structured error response containing:
-- machine-readable error code;
-- human-readable message;
-- optional field-level validation details.
-
-Suggested categories:
-- validation error;
-- not found;
-- invalid state transition;
-- conflict;
-- unexpected server error.
-
-## UI Design
-
-The list is the primary entry point. Detail is the primary workspace. Lifecycle actions should be context-sensitive, but backend validation remains authoritative. Errors should appear near the affected action or form and should not silently discard user input.
-
-## AEM-Specific Boundary
-
-AEM pages/components handle presentation and interaction. Java/Sling backend layers own request handling and domain behavior. Persistence access is isolated so implementation details do not leak into UI or API code.
-
-## Clientlib Loading
-
-Ticket UI scripts (`support.tickets`) are included from `support/components/page/customfooterlibs.html` without `async` so page init runs reliably after create → detail redirects. Component HTL does not embed clientlibs; CSS/JS are loaded at page level via `customheaderlibs.html` / `customfooterlibs.html`. Use `SupportUi.onReady()` for DOM-dependent initialization when scripts may load after `DOMContentLoaded`.
+- `OPEN` → `IN_PROGRESS`, `CANCELLED`
+- `IN_PROGRESS` → `RESOLVED`, `CANCELLED`
+- `RESOLVED` → `CLOSED`
+- `CLOSED`, `CANCELLED` → terminal
 
 ## Publish Authentication (CUG)
 
-Ticket pages under `/content/support-tickets` are protected on publish using **Closed User Group (CUG)** plus `sling:authRequireLogin`:
-
-- CUG enabled on the list page root; `create` and `detail` inherit protection.
-- CUG members are stored in `cq:ClosedUserGroupList` with `rep:principalNames="[support-agents,support-managers,administrators]"`.
-- Login page: `/content/support-tickets/login` posts to **`/content/support-tickets/login/j_security_check`** (Sling Form Authentication). This validates JCR users and sets the publish auth cookie. Do not use `request.login()` or `/libs/granite`/`/system/sling` endpoints on publish.
-- Publish OSGi: `org.apache.sling.auth.form.FormAuthenticationHandler` sets `form.login.form` to the content login page.
-- Login component: `support/components/login` with authoring dialog (`heading`, `subtitle`, `defaultRedirectPath`).
-- `SupportAuthRedirectFilter` (publish runmode only) redirects anonymous HTML requests to the login page when CUG/Sling auth does not intercept first.
-- Logout: `SupportLogoutServlet` handles `GET /content/support-tickets.logout.html` (page selector on `support/components/page`) and calls `Authenticator.logout()` to clear the form-auth cookie. User bar (`support/components/user-bar`) shows **Sign Out** on list/create/detail when authenticated.
-
-API endpoints (`/bin/api/support/*`) are **not** covered by CUG. Servlets reject `anonymous` via `AuthSupport.requireAuthenticated()`. Client-side API calls redirect to login on `401`.
+- CUG on `/content/support-tickets` with groups `support-agents`, `support-managers`, `administrators`.
+- Login: `POST /content/support-tickets/login/j_security_check` (Sling Form Authentication).
+- OSGi (publish): `FormAuthenticationHandler`, `LoginSelectorHandler`, `SlingAuthenticator`.
+- Filters: `SupportAuthRedirectFilter`, `GraniteLoginRedirectFilter` (safety net).
+- Logout: `GET /content/support-tickets.logout.html?resource=/content/support-tickets/login.html`.
 
 ## Dispatcher Cache Policy
 
-Both `dispatcher` (Cloud Service) and `dispatcher.ams` modules:
+- Allow: `/bin/api/support/*`, `POST .../j_security_check`.
+- Deny cache: `/content/support-tickets*`, `/bin/api/support/*`.
+- `/allowAuthorized "0"` on publish farms.
 
-- Allow `/bin/api/support/*` and Granite/Sling login endpoints through filters.
-- Deny dispatcher cache for `/content/support-tickets*` and `/bin/api/support/*`.
-- Keep `/allowAuthorized "0"` (default) — do not cache authenticated responses.
+## Clientlib Loading
 
-Ticket pages are accessed via `/content/support-tickets/*.html` (not short `/content/support/` vanity paths unless rewrites are added).
+Ticket UI scripts loaded synchronously at page level. Use `SupportUi.onReady()` for DOM-dependent initialization.
